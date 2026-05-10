@@ -72,6 +72,18 @@ build-wasm:
 	uvx maturin build --release --target wasm32-unknown-emscripten --out dist -i 3.13
 	ls -lh dist
 
+.PHONY: build-pyemscripten  ## Build a PEP 783 pyemscripten wheel via pyodide-build
+build-pyemscripten:
+	@echo 'Requires emsdk active, Rust nightly w/ wasm32-unknown-emscripten target,'
+	@echo 'pyodide-build with `pyodide xbuildenv install <version>` already run,'
+	@echo 'and `maturin` (currently from `main` for PEP 783 support) pre-installed.'
+	# `--no-isolation` so PEP 517 uses the pre-installed maturin `main` rather
+	# than fetching a released maturin from PyPI (which lacks the PEP 783
+	# `pyemscripten_*_wasm32` tag). `pyodide build` ignores `--output-dir`
+	# (treats it as a package spec) and writes to ./dist relative to its CWD.
+	pyodide build --no-isolation .
+	ls -lh dist
+
 .PHONY: format  ## Auto-format rust and python source files
 format:
 	uv run ruff check --fix $(sources)
