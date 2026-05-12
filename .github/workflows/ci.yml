@@ -328,15 +328,17 @@ jobs:
         with:
           python-version: ${{ matrix.pyodide.python }}
 
-      - name: Install rust nightly
-        # Pyodide 314's emcc passes nightly-only `-Z link-native-libraries`
-        # and `-Z emscripten-wasm-eh`; revisit when those flags stabilise.
+      - name: Install rust stable
+        # Pyodide 314.0.0a1's xbuildenv pins `RUST_TOOLCHAIN ?= 1.93.0` so any
+        # stable >= 1.93 works. `-Z link-native-libraries=no` was dropped in
+        # pyodide/pyodide-build#269 and `-Z emscripten-wasm-eh` became the
+        # default in Rust 1.93 (rust-lang/rust#148309 / MCP 920), so a nightly
+        # toolchain is no longer required.
         # no release versioning, see https://github.com/dtolnay/rust-toolchain/issues/180
         uses: dtolnay/rust-toolchain@3c5f7ea28cd621ae0bf5283f0e981fb97b8a7af9
         with:
-          components: rust-src
           targets: wasm32-unknown-emscripten
-          toolchain: nightly
+          toolchain: stable
 
       - name: Cache rust
         uses: Swatinem/rust-cache@c19371144df3bb44fab255c43d04cbc2ab54d1c4 # v2.9.1
@@ -348,22 +350,11 @@ jobs:
           version: ${{ env.EMSDK_VERSION }}
           actions-cache-folder: emsdk-cache
 
-      - name: Install pyodide-build and maturin
-        # Tracking pyodide-build `main` and maturin `main` for the PEP 783
-        # `pyemscripten_*_wasm32` platform tag (PyO3/maturin#3163, plus the
-        # paired pyodide-build handling). Switch back to pinned PyPI releases
-        # once both ship that change.
-        # `[resolve]` extra is required by `pyodide build` (resolvelib + unearth).
-        # maturin is installed here (instead of bumping `build-system.requires`
-        # in pydantic-core/pyproject.toml) so the MSRV job — which builds the
-        # workspace under rustc 1.88 — doesn't try to compile maturin `main`
-        # from source (which needs rustc 1.89). The pyemscripten Makefile
-        # target uses `pyodide build --no-isolation` to consume this maturin.
-        run: |
-          python -m pip install \
-            "pyodide-build[resolve] @ git+https://github.com/pyodide/pyodide-build@main" \
-            "maturin @ git+https://github.com/PyO3/maturin@main" \
-            build twine
+      - name: Install pyodide-build
+        # `[resolve]` extra is required by `pyodide build` (resolvelib +
+        # unearth). maturin is installed by pip during the isolated PEP 517
+        # build per pydantic-core/pyproject.toml's `requires` constraint.
+        run: python -m pip install "pyodide-build[resolve]>=0.34.3" build twine
 
       - name: Install Pyodide xbuildenv
         # `314.0.0a1` is still the only published Python 3.14 xbuildenv tarball
@@ -415,9 +406,7 @@ jobs:
           python-version: ${{ matrix.pyodide.python }}
 
       - name: Install pyodide-build
-        # Match the `core-build-pyemscripten` job: track pyodide-build `main`
-        # for PEP 783 `pyemscripten_*_wasm32` tag handling.
-        run: python -m pip install "pyodide-build[resolve] @ git+https://github.com/pyodide/pyodide-build@main" build
+        run: python -m pip install "pyodide-build[resolve]>=0.34.3" build
 
       - name: Install Pyodide xbuildenv
         # See `core-build-pyemscripten` for why we stay on 314.0.0a1.
@@ -437,7 +426,7 @@ jobs:
       - run: ls -lh pydantic-core/dist dist
 
       - name: Run unit test suite inside Pyodide venv
-        run: bash .github/scripts/pyemscripten-run-tests.sh
+        run: bash pyemscripten-run-tests.sh
 
   core-bench:
     name: core / Run Rust benchmarks

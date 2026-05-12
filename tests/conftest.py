@@ -201,16 +201,6 @@ _thread_unsafe_fixtures = (
 # `pytest_collection_modifyitems` (which is the last collection hook to be run).
 def pytest_itemcollected(item: Item) -> None:
     """Mark tests as thread unsafe if they make use of fixtures that doesn't play well across threads."""
-    if sys.platform == 'emscripten':
-        # pytest-run-parallel isn't installed under Pyodide (no wasm wheel),
-        # so `add_marker('thread_unsafe')` would raise and abort collection.
-        return
     fixtures: tuple[str, ...] = getattr(item, 'fixturenames', ())
     if any(fixture in fixtures for fixture in _thread_unsafe_fixtures):
         item.add_marker('thread_unsafe')
-
-
-def pytest_runtest_setup(item: Item) -> None:
-    if sys.platform == 'emscripten':
-        for marker in item.iter_markers(name='skip_emscripten'):
-            pytest.skip(marker.kwargs.get('reason', 'Skipped under Emscripten/Pyodide'))

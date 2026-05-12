@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
-# Invoked by .github/workflows/ci.yml. Requires `pyodide` on PATH and the
-# freshly built wheels in pydantic-core/dist/ (pyemscripten) and dist/
-# (pure-Python pydantic).
+# Run the pydantic test suite inside a Pyodide venv against freshly built
+# pyemscripten wheels. Invoked by `.github/workflows/ci.yml` and by
+# `make test-pyemscripten`. Requires `pyodide` on PATH and the freshly built
+# wheels in pydantic-core/dist/ (pyemscripten) and dist/ (pure-Python pydantic).
 set -euo pipefail
 
 VENV_DIR=".venv-pyodide"
@@ -37,12 +38,13 @@ pip install --force-reinstall --no-deps "${core_wheels[0]}" "${pyd_wheels[0]}"
 # Deliberately omitted (no wasm wheels / unsupported in Pyodide):
 #   pytest-timeout (uses signal.setitimer; `timeout` marker registered in
 #       pyproject.toml as a no-op), pytest-examples (depends on black/aiohttp),
-#   pytest-benchmark, pytest-codspeed, pytest-memray, pytest-run-parallel,
-#   cloudpickle, cffi, pandas, numpy.
+#   pytest-benchmark, pytest-codspeed, pytest-memray, cloudpickle, cffi,
+#   pandas, numpy.
 pip install \
     pytest \
     pytest-mock \
     pytest-pretty \
+    pytest-run-parallel \
     dirty-equals \
     hypothesis \
     inline-snapshot \
@@ -79,11 +81,13 @@ set -e
 # text humans see rather than the colourised byte stream.
 sed -E $'s/\x1b\\[[0-9;]*[a-zA-Z]//g' "${pytest_log}" > "${plain_log}"
 
-# Pyodide 314 alphas crash during CPython interpreter teardown after pytest
-# returns -- the wasm vtable goes south *after* the test summary prints,
-# making the process exit non-zero on x86_64 GH runners. Trust pytest's own
-# summary line: if it reports a clean run and the only failure signal is the
-# teardown crash, treat the job as green.
+# Pyodide 314.0.0a1 throws `RuntimeError: null function or function signature
+# mismatch` during CPython interpreter teardown *after* pytest's summary line
+# prints, leaving the process exit code at 1 even on a fully green run. The
+# same symptom is reported in https://github.com/pyodide/pyodide/issues/5015
+# (closed for an unrelated nanobind root cause). When pytest's own summary
+# reports a clean run and the only failure signal is the teardown crash, treat
+# the job as green; if any test fails, propagate the original exit code.
 if [ "${pytest_exit}" -ne 0 ] \
     && grep -q 'Pyodide has suffered a fatal error' "${plain_log}" \
     && grep -qE '^Results \([0-9.]+s\):' "${plain_log}" \

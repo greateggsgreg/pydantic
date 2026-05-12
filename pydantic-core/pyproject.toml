@@ -1,10 +1,8 @@
 [build-system]
-# Stays on a released maturin so PEP 517 builds keep working under the MSRV
-# (rustc 1.88) — building maturin `main` from source needs rustc 1.89. The
-# pyemscripten path uses `pyodide build --no-isolation` (see Makefile) so it
-# can pre-install maturin `main` (which has the PEP 783 `pyemscripten_*_wasm32`
-# tag from PyO3/maturin#3163) into the build env without affecting other builds.
-requires = ['maturin>=1.10,<2']
+# maturin >=1.13.2 is required for the PEP 783 `pyemscripten_*_wasm32` platform
+# tag (PyO3/maturin#3163). pip installs maturin from the PyPI wheel so the
+# workspace MSRV (rustc 1.88) is not relevant.
+requires = ['maturin>=1.13.2,<2']
 build-backend = 'maturin'
 
 [project]
@@ -134,9 +132,7 @@ addopts = [
     '--benchmark-disable',                        # this is enable by `make benchmark` when you actually want to run benchmarks
 ]
 markers = [
-    'skip_emscripten: skipped when running under Emscripten/Pyodide.',
-    # See pyproject.toml at repo root for the rationale on the next two.
-    'thread_unsafe: thread-unsafe; honored by pytest-run-parallel when installed.',
+    # See pyproject.toml at repo root for the rationale.
     'timeout: pytest-timeout marker; no-op without pytest-timeout installed.',
 ]
 

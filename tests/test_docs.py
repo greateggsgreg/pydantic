@@ -20,7 +20,7 @@ INDEX_MAIN = None
 DOCS_ROOT = Path(__file__).parent.parent / 'docs'
 SOURCES_ROOT = Path(__file__).parent.parent / 'pydantic'
 
-pytestmark = pytest.mark.skip_emscripten(reason='doc examples shell out via subprocess')
+pytestmark = pytest.mark.skipif(sys.platform == 'emscripten', reason='doc examples shell out via subprocess')
 
 
 def skip_docs_tests():

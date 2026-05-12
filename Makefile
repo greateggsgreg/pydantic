@@ -104,6 +104,14 @@ test-pydantic-extra-types: .uv
 test-no-docs: .uv
 	uv run pytest tests --ignore=tests/test_docs.py
 
+.PHONY: test-pyemscripten  ## Run the test suite under Pyodide against pyemscripten wheels (requires emsdk + pyodide-build + Rust 1.93+ wasm target)
+test-pyemscripten:
+	@echo 'Requires `pyodide` on PATH, `pyodide xbuildenv install <version>` already run,'
+	@echo 'emsdk active, and Rust 1.93+ stable with wasm32-unknown-emscripten target.'
+	$(MAKE) -C pydantic-core build-pyemscripten
+	python -m build --wheel --outdir dist
+	bash pyemscripten-run-tests.sh
+
 .PHONY: all  ## Run the standard set of checks performed in CI
 all: lint typecheck codespell testcov
 
