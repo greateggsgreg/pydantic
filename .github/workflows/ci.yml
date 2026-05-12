@@ -299,9 +299,8 @@ jobs:
 
   core-build-pyemscripten:
     name: core / Build pyemscripten wheel (Pyodide ${{ matrix.pyodide.version }})
-    # Ungated so `core-test-pyemscripten` runs on every PR. Re-enable the gate
-    # below to match other heavy `core-build*` jobs (also drop
-    # `core-test-pyemscripten` from `check.needs`).
+    # Ungated so `core-test-pyemscripten` runs on every PR; uncomment the
+    # `if:` (and drop the job from `check.needs`) to gate it like `core-build-pgo`.
     # if: startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/main' || contains(github.event.pull_request.labels.*.name, 'full build')
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -309,9 +308,7 @@ jobs:
       fail-fast: false
       matrix:
         pyodide:
-          # `pyodide xbuildenv install 314.0.0a1` requires *host* Python 3.14
-          # and emsdk 5.0.3 exactly; mismatches fail with a vague "is not
-          # compatible" error. Bump these together when 314.0.0 stable ships.
+          # Host Python, emsdk and Pyodide xbuildenv must match exactly.
           - version: '314.0.0a1'
             python: '3.14'
             emsdk: '5.0.3'
@@ -329,11 +326,8 @@ jobs:
           python-version: ${{ matrix.pyodide.python }}
 
       - name: Install rust stable
-        # Pyodide 314.0.0a1's xbuildenv pins `RUST_TOOLCHAIN ?= 1.93.0` so any
-        # stable >= 1.93 works. `-Z link-native-libraries=no` was dropped in
-        # pyodide/pyodide-build#269 and `-Z emscripten-wasm-eh` became the
-        # default in Rust 1.93 (rust-lang/rust#148309 / MCP 920), so a nightly
-        # toolchain is no longer required.
+        # Pyodide 314.0.0a1's xbuildenv pins RUST_TOOLCHAIN ?= 1.93.0; nightly
+        # is no longer required (rust-lang/rust#148309, pyodide/pyodide-build#269).
         # no release versioning, see https://github.com/dtolnay/rust-toolchain/issues/180
         uses: dtolnay/rust-toolchain@3c5f7ea28cd621ae0bf5283f0e981fb97b8a7af9
         with:
@@ -351,15 +345,11 @@ jobs:
           actions-cache-folder: emsdk-cache
 
       - name: Install pyodide-build
-        # `[resolve]` extra is required by `pyodide build` (resolvelib +
-        # unearth). maturin is installed by pip during the isolated PEP 517
-        # build per pydantic-core/pyproject.toml's `requires` constraint.
+        # `[resolve]` extra is required by `pyodide build`.
         run: python -m pip install "pyodide-build[resolve]>=0.34.3" build twine
 
       - name: Install Pyodide xbuildenv
-        # `314.0.0a1` is still the only published Python 3.14 xbuildenv tarball
-        # on https://github.com/pyodide/pyodide/releases (no nightly tarball
-        # is published from `main`). Bump to v314.0.0 once it ships.
+        # 314.0.0a1 is the only published Python 3.14 xbuildenv tarball.
         run: pyodide xbuildenv install "${PYODIDE_VERSION}"
 
       - name: Build pydantic-core pyemscripten wheel
@@ -373,10 +363,7 @@ jobs:
 
       - uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
-          # Matches the `pydantic_core_pypi_files_*` glob `release-pydantic-core`
-          # uses, so this wheel ships to PyPI alongside the other core wheels.
-          # The pure-Python pydantic wheel is published separately via the
-          # `build-pydantic` -> `pydantic_pypi_files` -> `release-pydantic` chain.
+          # Name matches the `pydantic_core_pypi_files_*` glob used by `release-pydantic-core`.
           name: pydantic_core_pypi_files_pyemscripten_${{ matrix.pyodide.abi }}
           path: pydantic-core/dist
 
@@ -389,8 +376,7 @@ jobs:
       fail-fast: false
       matrix:
         pyodide:
-          # Must stay in lockstep with the `core-build-pyemscripten` matrix
-          # (same xbuildenv compatibility constraints).
+          # Keep in lockstep with `core-build-pyemscripten`.
           - version: '314.0.0a1'
             python: '3.14'
             abi: '2026_0'
@@ -413,8 +399,7 @@ jobs:
         run: pyodide xbuildenv install "${PYODIDE_VERSION}"
 
       - name: Build pydantic (pure-Python) wheel
-        # Built inline rather than reused from `build-pydantic`, which only
-        # runs on tag pushes.
+        # `build-pydantic` only runs on tag pushes.
         run: python -m build --wheel --outdir dist
 
       - name: Download pyemscripten wheel
@@ -996,10 +981,7 @@ jobs:
     if: always()
     outputs:
       result: ${{ steps.all-green.outputs.result }}
-    # `core-test-pyemscripten` belongs here only while its parent build job is
-    # un-gated (see the note in `core-build-pyemscripten`). If the gate is
-    # re-enabled, drop it from this list so a skipped test doesn't red the
-    # all-green check on regular PRs.
+    # Drop `core-test-pyemscripten` from this list if `core-build-pyemscripten` is gated again.
     needs: [lint, docs-build, test, test-memray, test-mypy, test-plugin, core-test-os, core-test-debug, core-build-wasm-emscripten, core-test-pyemscripten]
     runs-on: ubuntu-latest
 

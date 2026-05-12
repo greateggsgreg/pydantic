@@ -1,7 +1,5 @@
 [build-system]
-# maturin >=1.13.2 is required for the PEP 783 `pyemscripten_*_wasm32` platform
-# tag (PyO3/maturin#3163). pip installs maturin from the PyPI wheel so the
-# workspace MSRV (rustc 1.88) is not relevant.
+# >=1.13.2 for the PEP 783 `pyemscripten_*_wasm32` tag (PyO3/maturin#3163).
 requires = ['maturin>=1.13.2,<2']
 build-backend = 'maturin'
 
@@ -132,7 +130,6 @@ addopts = [
     '--benchmark-disable',                        # this is enable by `make benchmark` when you actually want to run benchmarks
 ]
 markers = [
-    # See pyproject.toml at repo root for the rationale.
     'timeout: pytest-timeout marker; no-op without pytest-timeout installed.',
 ]
 

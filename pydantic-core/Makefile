@@ -74,11 +74,7 @@ build-wasm:
 
 .PHONY: build-pyemscripten  ## Build a PEP 783 pyemscripten wheel via pyodide-build
 build-pyemscripten:
-	@echo 'Requires emsdk active, Rust 1.93+ stable w/ wasm32-unknown-emscripten target,'
-	@echo 'and pyodide-build with `pyodide xbuildenv install <version>` already run.'
-	# `pyodide build` ignores `--output-dir` (treats it as a package spec) and
-	# writes to ./dist relative to its CWD. PEP 517 isolation installs maturin
-	# >=1.13.2 from PyPI (sufficient for the PEP 783 pyemscripten platform tag).
+	# `pyodide build` writes to ./dist (it treats --output-dir as a package spec).
 	pyodide build .
 	ls -lh dist
 

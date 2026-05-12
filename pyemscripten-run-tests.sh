@@ -1,8 +1,6 @@
 #!/usr/bin/env bash
-# Run the pydantic test suite inside a Pyodide venv against freshly built
-# pyemscripten wheels. Invoked by `.github/workflows/ci.yml` and by
-# `make test-pyemscripten`. Requires `pyodide` on PATH and the freshly built
-# wheels in pydantic-core/dist/ (pyemscripten) and dist/ (pure-Python pydantic).
+# Run the test suite inside a Pyodide venv against pyemscripten wheels in
+# pydantic-core/dist/ and the pure-Python pydantic wheel in dist/.
 set -euo pipefail
 
 VENV_DIR=".venv-pyodide"
@@ -14,8 +12,6 @@ fi
 source "${VENV_DIR}/bin/activate"
 
 shopt -s nullglob
-# Accept the PEP 783 `pyemscripten_<abi>_wasm32` tag and the legacy
-# `emscripten_X_Y_Z_wasm32` tag so toolchain regressions surface here.
 core_wheels=(
     pydantic-core/dist/pydantic_core-*-cp*-pyemscripten_*_wasm32.whl
     pydantic-core/dist/pydantic_core-*-cp*-emscripten_*_wasm32.whl
@@ -32,14 +28,8 @@ if [ ${#pyd_wheels[@]} -eq 0 ]; then
     exit 1
 fi
 
-# --force-reinstall here so iteration picks up freshly-built binaries even
-# when the wheel's version string is unchanged.
+# --force-reinstall so re-runs pick up freshly-built wheels with the same version.
 pip install --force-reinstall --no-deps "${core_wheels[0]}" "${pyd_wheels[0]}"
-# Deliberately omitted (no wasm wheels / unsupported in Pyodide):
-#   pytest-timeout (uses signal.setitimer; `timeout` marker registered in
-#       pyproject.toml as a no-op), pytest-examples (depends on black/aiohttp),
-#   pytest-benchmark, pytest-codspeed, pytest-memray, cloudpickle, cffi,
-#   pandas, numpy.
 pip install \
     pytest \
     pytest-mock \
@@ -56,9 +46,8 @@ pip install \
     pytz \
     tzdata
 
-# `--override-ini=addopts=` strips the project's `--benchmark-*` defaults
-# (pytest-benchmark has no wasm wheel; pytest would reject them as
-# unrecognized). `-p no:timeout` because pytest-timeout is not installed.
+# `--override-ini=addopts=` drops the project's `--benchmark-*` defaults
+# (pytest-benchmark is not installed here).
 pytest_log=$(mktemp)
 plain_log=$(mktemp)
 trap 'rm -f "${pytest_log}" "${plain_log}"' EXIT
@@ -77,23 +66,18 @@ pytest \
 pytest_exit=${PIPESTATUS[0]}
 set -e
 
-# Strip ANSI escapes pytest-pretty emits, so the guard below greps the same
-# text humans see rather than the colourised byte stream.
 sed -E $'s/\x1b\\[[0-9;]*[a-zA-Z]//g' "${pytest_log}" > "${plain_log}"
 
-# Pyodide 314.0.0a1 throws `RuntimeError: null function or function signature
-# mismatch` during CPython interpreter teardown *after* pytest's summary line
-# prints, leaving the process exit code at 1 even on a fully green run. The
-# same symptom is reported in https://github.com/pyodide/pyodide/issues/5015
-# (closed for an unrelated nanobind root cause). When pytest's own summary
-# reports a clean run and the only failure signal is the teardown crash, treat
-# the job as green; if any test fails, propagate the original exit code.
+# Pyodide 314.0.0a1 throws `null function or function signature mismatch`
+# during interpreter teardown after pytest's summary prints; pytest reports a
+# clean run but the process exits 1. See pyodide/pyodide#5015 for the closest
+# upstream report. Treat the job as green only when pytest itself was green.
 if [ "${pytest_exit}" -ne 0 ] \
     && grep -q 'Pyodide has suffered a fatal error' "${plain_log}" \
     && grep -qE '^Results \([0-9.]+s\):' "${plain_log}" \
     && ! grep -qE '(^|[[:space:]])[0-9]+ (failed|error)' "${plain_log}" \
     && ! grep -qE '(error|errors) during collection' "${plain_log}"; then
-    echo "[pyemscripten-run-tests] pytest reported a clean run; treating Pyodide teardown crash as non-fatal."
+    echo "[pyemscripten-run-tests] pytest clean; ignoring Pyodide teardown crash."
     exit 0
 fi
 exit "${pytest_exit}"
