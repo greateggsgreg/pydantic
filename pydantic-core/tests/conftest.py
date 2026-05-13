@@ -195,5 +195,3 @@ def assert_gc(test: Callable[[], bool], timeout: float = 10) -> None:
         sleep(0.1)
         now = time()
     raise AssertionError('Timeout waiting for GC')
-
-
