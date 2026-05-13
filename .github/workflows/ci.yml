@@ -326,8 +326,7 @@ jobs:
           python-version: ${{ matrix.pyodide.python }}
 
       - name: Install rust stable
-        # Pyodide 314.0.0a1's xbuildenv pins RUST_TOOLCHAIN ?= 1.93.0; nightly
-        # is no longer required (rust-lang/rust#148309, pyodide/pyodide-build#269).
+        # Pyodide 314.0.0a1's xbuildenv pins RUST_TOOLCHAIN ?= 1.93.0
         # no release versioning, see https://github.com/dtolnay/rust-toolchain/issues/180
         uses: dtolnay/rust-toolchain@3c5f7ea28cd621ae0bf5283f0e981fb97b8a7af9
         with:
