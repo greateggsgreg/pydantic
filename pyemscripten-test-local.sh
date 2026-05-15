@@ -10,7 +10,7 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 TOOLCHAIN_DIR="${REPO_ROOT}/.pyodide-toolchain"
 EMSDK_VERSION="${EMSDK_VERSION:-5.0.3}"
-PYODIDE_VERSION="${PYODIDE_VERSION:-314.0.0a1}"
+PYODIDE_VERSION="${PYODIDE_VERSION:-314.0.0a2}"
 PYTHON_BIN="${PYTHON_BIN:-python3.14}"
 
 require() {

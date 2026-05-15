@@ -309,7 +309,7 @@ jobs:
       matrix:
         pyodide:
           # Host Python, emsdk and Pyodide xbuildenv must match exactly.
-          - version: '314.0.0a1'
+          - version: '314.0.0a2'
             python: '3.14'
             emsdk: '5.0.3'
             abi: '2026_0'
@@ -326,7 +326,7 @@ jobs:
           python-version: ${{ matrix.pyodide.python }}
 
       - name: Install rust stable
-        # Pyodide 314.0.0a1's xbuildenv pins RUST_TOOLCHAIN ?= 1.93.0
+        # Pyodide 314.0.0a2's xbuildenv pins RUST_TOOLCHAIN ?= 1.93.0
         # no release versioning, see https://github.com/dtolnay/rust-toolchain/issues/180
         uses: dtolnay/rust-toolchain@3c5f7ea28cd621ae0bf5283f0e981fb97b8a7af9
         with:
@@ -348,7 +348,7 @@ jobs:
         run: python -m pip install "pyodide-build[resolve]>=0.34.3" build twine
 
       - name: Install Pyodide xbuildenv
-        # 314.0.0a1 is the only published Python 3.14 xbuildenv tarball.
+        # 314.0.0a2 is the latest published Python 3.14 xbuildenv tarball.
         run: pyodide xbuildenv install "${PYODIDE_VERSION}"
 
       - name: Build pydantic-core pyemscripten wheel
@@ -376,7 +376,7 @@ jobs:
       matrix:
         pyodide:
           # Keep in lockstep with `core-build-pyemscripten`.
-          - version: '314.0.0a1'
+          - version: '314.0.0a2'
             python: '3.14'
             abi: '2026_0'
     env:
@@ -394,7 +394,7 @@ jobs:
         run: python -m pip install "pyodide-build[resolve]>=0.34.3" build
 
       - name: Install Pyodide xbuildenv
-        # See `core-build-pyemscripten` for why we stay on 314.0.0a1.
+        # See `core-build-pyemscripten` for why we stay on 314.0.0a2.
         run: pyodide xbuildenv install "${PYODIDE_VERSION}"
 
       - name: Build pydantic (pure-Python) wheel

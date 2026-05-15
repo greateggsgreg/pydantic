@@ -68,7 +68,7 @@ set -e
 
 sed -E $'s/\x1b\\[[0-9;]*[a-zA-Z]//g' "${pytest_log}" > "${plain_log}"
 
-# Pyodide 314.0.0a1's wasm runtime crashes during CPython interpreter teardown
+# Pyodide 314.0.0a2's wasm runtime crashes during CPython interpreter teardown
 # after pytest's summary prints. pytest's own exit code is 0 but the process
 # exits 1 from the post-summary crash. Drop this once Pyodide 314.0.0 stable
 # lands. Repro:  python -c "from jsonschema import Draft202012Validator"
